@@ -16,18 +16,26 @@ import (
 
 func main() {
 
+	//setContent()
+	//Worker()
+
+	rp := NewReverseProxy("hugo", "1313")
+
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
+	r.Use(rp.ReverseProxy)
 
 	nextHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Hello from API"))
 	})
 
-	rp := NewReverseProxy("hugo", "1313")
-	r.Handle("/*", rp.ReverseProxy(nextHandler))
+	r.Handle("/*", nextHandler)
 
 	http.ListenAndServe(":8080", r)
+
 }
+
+var content string
 
 type ReverseProxy struct {
 	host string
@@ -57,14 +65,40 @@ func (rp *ReverseProxy) ReverseProxy(next http.Handler) http.Handler {
 			r.URL.Path = u.Path
 			proxy := httputil.NewSingleHostReverseProxy(u)
 			proxy.ServeHTTP(w, r)
-
 		}
-
 	})
-
 }
 
-const content = ``
+func setContent() {
+
+	content = `
+---
+menu:
+    before:
+        name: tasks
+        weight: 5
+title: Обновление данных в реальном времени
+---
+
+# Задача: Обновление данных в реальном времени
+
+Напишите воркер, который будет обновлять данные в реальном времени, на текущей странице.
+Текст данной задачи менять нельзя, только время и счетчик.
+
+Файл данной страницы: /app/static/tasks/_index.md	
+
+Должен меняться счетчик и время:
+
+Текущее время: %s
+
+Счетчик: %d
+
+## Критерии приемки:
+- [ ] Воркер должен обновлять данные каждые 5 секунд
+- [ ] Счетчик должен увеличиваться на 1 каждые 5 секунд
+- [ ] Время должно обновляться каждые 5 секунд`
+
+}
 
 func WorkerTest() {
 	t := time.NewTicker(5 * time.Second)
@@ -81,8 +115,8 @@ func WorkerTest() {
 	}
 }
 
-/*
 func Worker() {
+
 	t := time.NewTicker(5 * time.Second)
 	var counter int
 	for {
@@ -91,9 +125,12 @@ func Worker() {
 
 			currentTime := time.Now().Format("2006-01-02 15:04:05")
 
+			//count := fmt.Sprintf(content, currentTime, counter)
 			fmt.Println(currentTime, counter)
 
-			err := os.WriteFile("/app/static/tasks/_index.md", []byte(fmt.Sprintf("Текущее время: %s\n\nСчетчик: %d", currentTime, counter)), 0644)
+			err := os.WriteFile("/app/static/tasks/_index.md", []byte(fmt.Sprintf(content, currentTime, counter)), 0777)
+
+			//err := os.WriteFile("../hugo/content/tasks/_index.md", []byte(fmt.Sprintf(content, currentTime, counter)), 0777)
 
 			if err != nil {
 				log.Println(err)
@@ -103,5 +140,3 @@ func Worker() {
 		}
 	}
 }
-
-*/
